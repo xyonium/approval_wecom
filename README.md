@@ -9,7 +9,7 @@ Nextcloud [Approval](https://github.com/nextcloud/approval) 应用的配套应�
 
 - 监听 Approval 应用的系统标签分配事件（`TagAssignedEvent`）：待审批标签触发卡片推送与请求登记；通过/拒绝标签触发归档、卡片更新与结果通知。
 - 企业微信回调（卡片按钮点击）→ 验签解密 → 点击者按邮箱映射回 Nextcloud 用户 → 校验其为该规则审批人 → 调用 Approval 的 `ApprovalService` 执行审批（类不可用时降级为等价的最小实现）。
-- 本应用**不修改 Approval 应用本身**，通过其公开的数据表（`approval_rules` / `approval_rule_approvers` / `approval_activity`）与公开事件集成；申请人在审批结束时从自建表 `approval_wecom_requests` 读取（Approval 的 activity 行在结束时被删后重建，pending 行不复存在）。
+- 本应用**不修改 Approval 应用本身**，通过其公开的数据表（`approval_rules` / `approval_rule_approvers` / `approval_activity`）与公开事件集成；申请人在审批结束时从自建表 `aprv_wc_reqs` 读取（Approval 的 activity 行在结束时被删后重建，pending 行不复存在）。
 
 ## 安装
 
@@ -55,7 +55,7 @@ Nextcloud [Approval](https://github.com/nextcloud/approval) 应用的配套应�
 
 ## 维护
 
-- `approval_wecom_requests` 表登记在途请求；审批结束时删除对应行；**每日定时任务**清理 30 天以上的残留行（如文件被直接删除导致的孤儿行）。
+- `aprv_wc_reqs` 表登记在途请求；审批结束时删除对应行；**每日定时任务**清理 30 天以上的残留行（如文件被直接删除导致的孤儿行）。
 - 日志：应用内所有异常只记日志（`app=approval_wecom`），绝不阻断 Approval 主流程或企业微信回调响应。
 - 界面文案为中文（源码内中文文案，未走翻译流程）。
 

@@ -22,7 +22,7 @@ class RequestRegistry {
 
 	public function register(int $fileId, int $ruleId, string $requesterUserId): void {
 		$qb = $this->db->getQueryBuilder();
-		$qb->update('approval_wecom_requests')
+		$qb->update('aprv_wc_reqs')
 			->set('requester_user_id', $qb->createNamedParameter($requesterUserId, IQueryBuilder::PARAM_STR))
 			->where($qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)))
 			->andWhere($qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId, IQueryBuilder::PARAM_INT)));
@@ -30,7 +30,7 @@ class RequestRegistry {
 
 		if ($updated === 0) {
 			$qb = $this->db->getQueryBuilder();
-			$qb->insert('approval_wecom_requests')
+			$qb->insert('aprv_wc_reqs')
 				->values([
 					'file_id' => $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT),
 					'rule_id' => $qb->createNamedParameter($ruleId, IQueryBuilder::PARAM_INT),
@@ -48,7 +48,7 @@ class RequestRegistry {
 
 	public function attachCardInfo(int $fileId, int $ruleId, ?string $taskId, ?string $responseCode): void {
 		$qb = $this->db->getQueryBuilder();
-		$qb->update('approval_wecom_requests')
+		$qb->update('aprv_wc_reqs')
 			->set('task_id', $qb->createNamedParameter($taskId, IQueryBuilder::PARAM_STR))
 			->set('response_code', $qb->createNamedParameter($responseCode, IQueryBuilder::PARAM_STR))
 			->where($qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)))
@@ -62,7 +62,7 @@ class RequestRegistry {
 	public function find(int $fileId, int $ruleId): ?array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('id', 'file_id', 'rule_id', 'requester_user_id', 'task_id', 'response_code', 'created_at')
-			->from('approval_wecom_requests')
+			->from('aprv_wc_reqs')
 			->where($qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)))
 			->andWhere($qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId, IQueryBuilder::PARAM_INT)))
 			->setMaxResults(1);
@@ -86,7 +86,7 @@ class RequestRegistry {
 
 	public function delete(int $fileId, int $ruleId): void {
 		$qb = $this->db->getQueryBuilder();
-		$qb->delete('approval_wecom_requests')
+		$qb->delete('aprv_wc_reqs')
 			->where($qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)))
 			->andWhere($qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId, IQueryBuilder::PARAM_INT)));
 		$qb->executeStatement();
@@ -94,7 +94,7 @@ class RequestRegistry {
 
 	public function deleteOlderThan(int $timestamp): int {
 		$qb = $this->db->getQueryBuilder();
-		$qb->delete('approval_wecom_requests')
+		$qb->delete('aprv_wc_reqs')
 			->where($qb->expr()->lt('created_at', $qb->createNamedParameter($timestamp, IQueryBuilder::PARAM_INT)));
 		return $qb->executeStatement();
 	}

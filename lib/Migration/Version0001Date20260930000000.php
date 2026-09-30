@@ -18,8 +18,8 @@ class Version0001Date20260930000000 extends SimpleMigrationStep {
 		/** @var ISchemaWrapper $schema */
 		$schema = $schemaClosure();
 
-		if (!$schema->hasTable('approval_wecom_requests')) {
-			$table = $schema->createTable('approval_wecom_requests');
+		if (!$schema->hasTable('aprv_wc_reqs')) {
+			$table = $schema->createTable('aprv_wc_reqs');
 			$table->addColumn('id', Types::BIGINT, [
 				'autoincrement' => true,
 				'notnull' => true,
