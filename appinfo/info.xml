@@ -17,6 +17,9 @@
 		<admin>OCA\ApprovalWeCom\Settings\Admin</admin>
 		<admin-section>OCA\ApprovalWeCom\Settings\AdminSection</admin-section>
 	</settings>
+	<commands>
+		<command>OCA\ApprovalWeCom\Command\ArchiveExistingCommand</command>
+	</commands>
 	<background-jobs>
 		<job>OCA\ApprovalWeCom\BackgroundJob\CleanupRequestsJob</job>
 	</background-jobs>
