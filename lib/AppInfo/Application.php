@@ -17,6 +17,11 @@ class Application extends App implements IBootstrap {
 	public const STATE_APPROVED = 2;
 	public const STATE_REJECTED = 3;
 
+	// Mirror of OCA\Approval approver entity types (approval_rule_approvers.entity_type).
+	public const TYPE_USER = 0;
+	public const TYPE_GROUP = 1;
+	public const TYPE_CIRCLE = 2;
+
 	public function __construct(array $urlParams = []) {
 		parent::__construct(self::APP_ID, $urlParams);
 	}
