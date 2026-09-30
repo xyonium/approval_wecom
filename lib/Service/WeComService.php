@@ -113,13 +113,16 @@ class WeComService {
 		}
 	}
 
-	/** Map a Nextcloud user email to a WeCom userid. */
+	/** Map a Nextcloud user email to a WeCom userid (tries enterprise mailbox first, then personal). */
 	public function getWeComUserIdByEmail(string $email): ?string {
-		$data = $this->apiCall('POST', '/cgi-bin/user/get_userid_by_email', ['email' => $email]);
-		if ($data === null || ($data['errcode'] ?? -1) !== 0 || empty($data['userid'])) {
-			return null;
+		// email_type: 1 = enterprise mailbox (biz_mail), 2 = personal email
+		foreach ([1, 2] as $type) {
+			$data = $this->apiCall('POST', '/cgi-bin/user/get_userid_by_email', ['email' => $email, 'email_type' => $type]);
+			if ($data !== null && ($data['errcode'] ?? -1) === 0 && !empty($data['userid'])) {
+				return (string)$data['userid'];
+			}
 		}
-		return (string)$data['userid'];
+		return null;
 	}
 
 	/** Map a WeCom userid back to an email (email field, falling back to biz_mail). */
