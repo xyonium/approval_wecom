@@ -17,7 +17,7 @@ Nextcloud [Approval](https://github.com/nextcloud/approval) 应用的配套应�
 2. 将本应用放入 `apps/` 或 `custom_apps/`，在应用管理页启用 **Approval WeCom integration**。
 3. 构建前端资源（发布包已内置可跳过）：`npm ci && npm run build`。
 
-要求：Nextcloud 33–35，PHP 8.3+。管理员与审批人的 Nextcloud 账号需设置邮箱，且与企业微信成员邮箱一致。
+要求：Nextcloud 32–35，PHP 8.3+。管理员与审批人的 Nextcloud 账号需设置邮箱，且与企业微信成员邮箱一致。
 
 ## 企业微信侧配置（自建应用）
 

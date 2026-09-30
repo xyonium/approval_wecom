@@ -11,7 +11,7 @@
 	<namespace>ApprovalWeCom</namespace>
 	<category>integration</category>
 	<dependencies>
-		<nextcloud min-version="33" max-version="35"/>
+		<nextcloud min-version="32" max-version="35"/>
 	</dependencies>
 	<settings>
 		<admin>OCA\ApprovalWeCom\Settings\Admin</admin>
