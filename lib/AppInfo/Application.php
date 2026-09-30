@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\ApprovalWeCom\AppInfo;
 
+use OCA\ApprovalWeCom\Listener\TagAssignmentListener;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\SystemTag\TagAssignedEvent;
 
 class Application extends App implements IBootstrap {
 	public const APP_ID = 'approval_wecom';
@@ -27,6 +29,7 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
+		$context->registerEventListener(TagAssignedEvent::class, TagAssignmentListener::class);
 	}
 
 	public function boot(IBootContext $context): void {

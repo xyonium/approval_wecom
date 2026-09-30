@@ -143,20 +143,20 @@ class WeComService {
 		if ($weComUserIds === []) {
 			return null;
 		}
-		$taskId = sprintf('awc_%d_%d_%d', $fileId, $ruleId, time());
+		$taskId = sprintf('approval_%d_%d_%d', $fileId, $ruleId, time());
 		$body = [
 			'touser' => implode('|', $weComUserIds),
 			'msgtype' => 'template_card',
 			'agentid' => (int)$this->settings->getAgentId(),
 			'template_card' => [
 				'card_type' => 'button_interaction',
-				'main_title' => ['title' => 'Nextcloud 审批请求'],
+				'main_title' => ['title' => '审批请求：' . $fileName, 'desc' => '申请人：' . $requesterName],
 				'sub_title_text' => $requesterName . ' 请求审批文件「' . $fileName . '」',
 				'task_id' => $taskId,
 				// button styles are cosmetic (WeCom renders them); keys carry the action
 				'button_list' => [
 					['text' => '批准', 'style' => 1, 'key' => 'approve_' . $fileId . '_' . $ruleId],
-					['text' => '拒绝', 'style' => 2, 'key' => 'reject_' . $fileId . '_' . $ruleId],
+					['text' => '拒绝', 'style' => 3, 'key' => 'reject_' . $fileId . '_' . $ruleId],
 				],
 				'card_action' => ['type' => 1, 'url' => $fileUrl],
 			],

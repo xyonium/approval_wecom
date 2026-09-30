@@ -125,6 +125,18 @@ final class ApprovalInfoProviderTest extends TestCase {
 		$this->assertNull($this->makeProvider($db)->findPendingRequesterUserId(12, 3));
 	}
 
+	public function testFindResolverUserId(): void {
+		[$db, $qb] = $this->newQueryBuilderMock();
+		$qb->method('executeQuery')->willReturn($this->mockResult([['user_id' => 'bob']]));
+		$this->assertSame('bob', $this->makeProvider($db)->findResolverUserId(12, 3));
+	}
+
+	public function testFindResolverUserIdReturnsNull(): void {
+		[$db, $qb] = $this->newQueryBuilderMock();
+		$qb->method('executeQuery')->willReturn($this->mockResult([]));
+		$this->assertNull($this->makeProvider($db)->findResolverUserId(12, 3));
+	}
+
 	public function testGetAllRuleTags(): void {
 		[$db, $qb] = $this->newQueryBuilderMock();
 		$qb->method('executeQuery')->willReturn($this->mockResult([

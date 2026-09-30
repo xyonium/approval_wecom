@@ -159,7 +159,7 @@ final class WeComServiceTest extends TestCase {
 		$result = $service->sendApprovalCards(['wc-a', 'wc-b'], 'Alice', '合同.pdf', 12, 3, 'https://nc.example.com/f/12');
 		$this->assertNotNull($result);
 		$this->assertSame('rc-send-1', $result['responseCode']);
-		$this->assertStringStartsWith('awc_12_3_', $result['taskId']);
+		$this->assertStringStartsWith('approval_12_3_', $result['taskId']);
 
 		$body = $this->requests[0]['options']['json'];
 		$this->assertSame('wc-a|wc-b', $body['touser']);

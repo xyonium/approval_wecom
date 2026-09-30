@@ -31,9 +31,11 @@ class ArchiveService {
 	}
 
 	/**
-	 * @param list<array{type: int, entityId: string}> $approverEntities entities from ApprovalInfoProvider::getApproverEntities()
+	 * @param ?list<array{type: int, entityId: string}> $approverEntities entities from
+	 *        ApprovalInfoProvider::getApproverEntities(); null disables filtering
+	 *        (rule unknown — all of the requester's shares of this file are archived)
 	 */
-	public function archiveShares(int $fileId, string $requesterUserId, array $approverEntities): void {
+	public function archiveShares(int $fileId, string $requesterUserId, ?array $approverEntities): void {
 		$nodes = $this->rootFolder->getById($fileId);
 		$node = $nodes[0] ?? null;
 		if ($node === null) {
@@ -70,8 +72,11 @@ class ArchiveService {
 		}
 	}
 
-	/** @param list<array{type: int, entityId: string}> $entities */
-	private function matchesEntity(array $entities, int $type, string $entityId): bool {
+	/** @param ?list<array{type: int, entityId: string}> $entities null matches everything */
+	private function matchesEntity(?array $entities, int $type, string $entityId): bool {
+		if ($entities === null) {
+			return true;
+		}
 		foreach ($entities as $entity) {
 			if ($entity['type'] === $type && $entity['entityId'] === $entityId) {
 				return true;

@@ -142,12 +142,30 @@ class ApprovalInfoProvider {
 	 * resolution time (storeAction is delete-then-insert).
 	 */
 	public function findPendingRequesterUserId(int $fileId, int $ruleId): ?string {
+		return $this->findLatestActivityUserId($fileId, $ruleId, [1]);
+	}
+
+	/**
+	 * User who resolved (approved/rejected) the request, from approval's
+	 * activity table. Valid at resolved-tag-assignment time because approval
+	 * runs storeAction() before assignTags().
+	 */
+	public function findResolverUserId(int $fileId, int $ruleId): ?string {
+		return $this->findLatestActivityUserId($fileId, $ruleId, [2, 3]);
+	}
+
+	/** @param list<int> $states */
+	private function findLatestActivityUserId(int $fileId, int $ruleId, array $states): ?string {
 		$qb = $this->db->getQueryBuilder();
+		$stateParams = array_map(
+			static fn (int $state) => $qb->createNamedParameter($state, IQueryBuilder::PARAM_INT),
+			$states,
+		);
 		$qb->select('user_id')
 			->from('approval_activity')
 			->where($qb->expr()->eq('file_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)))
 			->andWhere($qb->expr()->eq('rule_id', $qb->createNamedParameter($ruleId, IQueryBuilder::PARAM_INT)))
-			->andWhere($qb->expr()->eq('new_state', $qb->createNamedParameter(1, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->in('new_state', $stateParams))
 			->orderBy('timestamp', 'DESC')
 			->setMaxResults(1);
 		$result = $qb->executeQuery();

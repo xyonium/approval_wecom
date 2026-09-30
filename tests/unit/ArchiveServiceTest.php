@@ -256,4 +256,27 @@ final class ArchiveServiceTest extends TestCase {
 		$this->shareManager->expects($this->never())->method('getSharesBy');
 		$this->makeService()->archiveShares(99, 'requester', [['type' => 0, 'entityId' => 'alice']]);
 	}
+
+	public function testNullEntitiesMovesAllRequesterShares(): void {
+		$node = $this->fileNode('doc.pdf');
+		$this->rootFolder->method('getById')->willReturn([$node]);
+		$this->settings->method('getArchiveFolder')->willReturn('approval');
+		$this->settings->method('getArchiveSubfolder')->willReturn('none');
+
+		$shareAlice = $this->userShare('alice');
+		$shareBob = $this->userShare('bob');
+		$this->shareManager->method('getSharesBy')->willReturnCallback(
+			static fn (string $userId, int $type, ?Node $path = null): array =>
+				$type === IShare::TYPE_USER ? [$shareAlice, $shareBob] : []
+		);
+
+		$created = [];
+		$this->rootFolder->method('getUserFolder')->willReturn($this->folderChain($created));
+
+		$shareAlice->expects($this->once())->method('setTarget')->with('/approval/doc.pdf');
+		$shareBob->expects($this->once())->method('setTarget')->with('/approval/doc.pdf');
+		$this->shareManager->expects($this->exactly(2))->method('moveShare');
+
+		$this->makeService()->archiveShares(12, 'requester', null);
+	}
 }
