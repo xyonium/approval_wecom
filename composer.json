@@ -1,0 +1,27 @@
+{
+	"name": "nextcloud/approval_wecom",
+	"description": "WeCom (企业微信) integration and share archiving for the Nextcloud Approval app",
+	"license": "AGPL-3.0-or-later",
+	"require": {
+		"php": ">=8.3"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^9.6",
+		"nextcloud/ocp": "dev-master"
+	},
+	"autoload": {
+		"psr-4": {
+			"OCA\\ApprovalWeCom\\": "lib/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"OCA\\ApprovalWeCom\\Tests\\": "tests/unit/"
+		}
+	},
+	"config": {
+		"platform": {
+			"php": "8.3"
+		}
+	}
+}

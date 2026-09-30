@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>approval_wecom</id>
+	<name>Approval WeCom integration</name>
+	<summary>Send approval requests to WeCom (企业微信) and archive shared files after approval</summary>
+	<description><![CDATA[Integrates the Approval app with WeCom (企业微信): approvers receive interactive template cards and can approve or reject directly inside WeCom. When a request is approved, the share mount point in each approver's files can be moved into a configurable date-organized archive folder. The original file of the requester is never touched.]]></description>
+	<version>0.1.0</version>
+	<licence>agpl</licence>
+	<author>Eli</author>
+	<namespace>ApprovalWeCom</namespace>
+	<category>integration</category>
+	<dependencies>
+		<nextcloud min-version="33" max-version="35"/>
+	</dependencies>
+</info>
