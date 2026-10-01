@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace OCA\ApprovalWeCom\Command;
 
 use OCA\ApprovalWeCom\Service\SettingsService;
+use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
-use OCP\Files\Node;
+use OCP\IDBConnection;
 use OCP\SystemTag\ISystemTagManager;
 use OCP\SystemTag\ISystemTagObjectMapper;
 use Symfony\Component\Console\Command\Command;
@@ -21,6 +22,7 @@ class ArchiveExistingCommand extends Command {
 		private IRootFolder $rootFolder,
 		private ISystemTagManager $tagManager,
 		private ISystemTagObjectMapper $tagMapper,
+		private IDBConnection $db,
 		private SettingsService $settings,
 	) {
 		parent::__construct();
@@ -41,21 +43,13 @@ class ArchiveExistingCommand extends Command {
 		$dryRun = $input->getOption('dry-run');
 
 		$archiveFolder = $this->settings->getArchiveFolder();
-		$subfolder = $this->settings->getArchiveSubfolder();
-		$archivePath = $archiveFolder;
-		$sub = match ($subfolder) {
-			'month' => date('Y-m'),
-			'year' => date('Y'),
-			default => null,
-		};
-		if ($sub !== null) {
-			$archivePath .= '/' . $sub;
-		}
+		$subfolderMode = $this->settings->getArchiveSubfolder();
 
-		$output->writeln("User:           $userId");
-		$output->writeln("Tag filter:     *$tagFilter*");
-		$output->writeln("Archive target: /$archivePath");
-		$output->writeln($dryRun ? "Mode:           DRY RUN" : "Mode:           LIVE");
+		$output->writeln("User:            $userId");
+		$output->writeln("Tag filter:      *$tagFilter*");
+		$output->writeln("Archive folder:  $archiveFolder");
+		$output->writeln("Subfolder mode:  $subfolderMode (per-file, based on approval time → file mtime fallback)");
+		$output->writeln($dryRun ? "Mode:            DRY RUN" : "Mode:            LIVE");
 		$output->writeln('');
 
 		// Collect all system tags matching the filter
@@ -83,15 +77,12 @@ class ArchiveExistingCommand extends Command {
 		// Scan direct children of the user's root
 		$candidates = [];
 		foreach ($userFolder->getDirectoryListing() as $node) {
-			// Skip the archive folder itself
 			if ($node->getName() === $archiveFolder) {
 				continue;
 			}
-			// Must be a shared mount (received share)
 			if (!$node->isShared()) {
 				continue;
 			}
-			// Check if this file has any of the matching tags
 			$fileId = (string)$node->getId();
 			$fileTags = $this->tagMapper->getTagIdsForObjects([$fileId], 'files');
 			$nodeTagIds = $fileTags[$fileId] ?? [];
@@ -110,36 +101,36 @@ class ArchiveExistingCommand extends Command {
 		$output->writeln(count($candidates) . ' file(s) to archive:');
 		$output->writeln('');
 
-		// Ensure archive dir exists
-		$archiveDir = null;
-		if (!$dryRun) {
-			$archiveDir = $userFolder;
-			$segments = [$archiveFolder];
-			if ($sub !== null) {
-				$segments[] = $sub;
-			}
-			foreach ($segments as $segment) {
-				if ($archiveDir->nodeExists($segment)) {
-					$next = $archiveDir->get($segment);
-					if (!$next instanceof Folder) {
-						$output->writeln("<error>\"$segment\" exists but is not a folder.</error>");
-						return 1;
-					}
-					$archiveDir = $next;
-				} else {
-					$archiveDir = $archiveDir->newFolder($segment);
-				}
-			}
-		}
+		// Cache of created archive dirs keyed by subfolder string (e.g. "2026-09")
+		$archiveDirs = [];
 
 		$moved = 0;
 		foreach ($candidates as $node) {
 			$name = $node->getName();
-			$output->write("  $name ... ");
+			$fileId = $node->getId();
+
+			// Determine the timestamp for subfolder placement
+			$ts = $this->findApprovalTimestamp($fileId);
+			$tsSource = 'approval_activity';
+			if ($ts === null) {
+				$ts = $node->getMTime();
+				$tsSource = 'file mtime';
+			}
+
+			$sub = match ($subfolderMode) {
+				'month' => date('Y-m', $ts),
+				'year' => date('Y', $ts),
+				default => null,
+			};
+			$targetPath = $sub !== null ? "$archiveFolder/$sub" : $archiveFolder;
+
+			$output->write("  $name → /$targetPath  (" . date('Y-m-d', $ts) . " via $tsSource) ... ");
+
 			if ($dryRun) {
 				$output->writeln('would move');
 			} else {
 				try {
+					$archiveDir = $this->getOrCreateArchiveDir($userFolder, $archiveFolder, $sub, $archiveDirs);
 					$targetName = $this->uniqueName($archiveDir, $name);
 					$node->move($archiveDir->getPath() . '/' . $targetName);
 					$output->writeln("moved" . ($targetName !== $name ? " (as $targetName)" : ''));
@@ -151,8 +142,64 @@ class ArchiveExistingCommand extends Command {
 		}
 
 		$output->writeln('');
-		$output->writeln($dryRun ? 'Dry run complete.' : "Done. $moved file(s) archived to /$archivePath.");
+		$output->writeln($dryRun ? 'Dry run complete.' : "Done. $moved file(s) archived.");
 		return 0;
+	}
+
+	/**
+	 * Look up the approval timestamp from the approval app's activity table.
+	 * Returns the unix timestamp of the most recent approved (state=2) activity
+	 * row for this file, or null if not found.
+	 */
+	private function findApprovalTimestamp(int $fileId): ?int {
+		try {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('datetime')
+				->from('approval_activity')
+				->where($qb->expr()->eq('object_id', $qb->createNamedParameter($fileId, IQueryBuilder::PARAM_INT)))
+				->andWhere($qb->expr()->eq('new_state', $qb->createNamedParameter(2, IQueryBuilder::PARAM_INT)))
+				->orderBy('datetime', 'DESC')
+				->setMaxResults(1);
+			$result = $qb->executeQuery();
+			$row = $result->fetch();
+			$result->closeCursor();
+			if ($row !== false && isset($row['datetime'])) {
+				// datetime column is a DATETIME string in approval's schema
+				$dt = new \DateTimeImmutable((string)$row['datetime']);
+				return $dt->getTimestamp();
+			}
+		} catch (\Throwable) {
+			// approval_activity table may not exist or have different schema
+		}
+		return null;
+	}
+
+	private function getOrCreateArchiveDir(Folder $userFolder, string $archiveFolder, ?string $sub, array &$cache): Folder {
+		$key = $sub ?? '__root__';
+		if (isset($cache[$key])) {
+			return $cache[$key];
+		}
+
+		$segments = [$archiveFolder];
+		if ($sub !== null) {
+			$segments[] = $sub;
+		}
+
+		$dir = $userFolder;
+		foreach ($segments as $segment) {
+			if ($dir->nodeExists($segment)) {
+				$next = $dir->get($segment);
+				if (!$next instanceof Folder) {
+					throw new \RuntimeException("\"$segment\" exists but is not a folder");
+				}
+				$dir = $next;
+			} else {
+				$dir = $dir->newFolder($segment);
+			}
+		}
+
+		$cache[$key] = $dir;
+		return $dir;
 	}
 
 	private function uniqueName(Folder $dir, string $nodeName): string {
